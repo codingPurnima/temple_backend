@@ -4,7 +4,7 @@ from jose import jwt, JWTError
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.api.deps import get_current_user
-from app.schemas.user import UserCreate, UserLogin
+from app.schemas.user import ProfileCreate, UserLogin, UserCreate
 from app.services.auth_service import register_user, login_user
 from app.db.deps import get_db
 from app.core.config import settings
@@ -13,6 +13,8 @@ from app.core.security import create_access_token, create_refresh_token, decode_
 from app.schemas.token import RefreshRequest
 from app.services.role_service import require_role
 from app.models.roles import UserRole
+
+from app.api.deps import get_firebase_user
 
 router = APIRouter(tags=["Auth"])
 
@@ -23,6 +25,42 @@ def get_me(user=Depends(get_current_user)):
         "email": user.email,
         "role": user.role.value,
         "name": user.name
+    }
+
+@router.post("/profile")
+def create_profile(
+    data: ProfileCreate, 
+    firebase_user= Depends(get_firebase_user), 
+    db:Session= Depends(get_db)
+):
+    firebase_uid= firebase_user["uid"]
+    email= firebase_user.get("email")
+
+    existing= db.query(User).filter(
+        User.firebase_uid== firebase_uid
+    ).first()
+
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="User profile already exists"
+        )
+
+    user = User(
+        firebase_uid=firebase_uid,
+        name=data.name,
+        email=email,
+        role=UserRole.NORMAL,
+        is_verified=firebase_user.get("email_verified", False)
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "message": "Profile created",
+        "user_id": user.id
     }
 
 @router.get("/admin-only")
