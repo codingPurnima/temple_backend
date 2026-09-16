@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.db.database import engine, Base
-from app.models import User
+from app.models import user, character, event, lyrics, notification, event_registration, roles 
 from app.api.routes import admin, auth, event, notification, dashboard, character, lyrics
 from fastapi.middleware.cors import CORSMiddleware
 
