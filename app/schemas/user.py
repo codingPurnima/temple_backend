@@ -18,3 +18,6 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ProfileCreate(BaseModel):
+    name: str
