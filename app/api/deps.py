@@ -8,35 +8,47 @@ from app.db.deps import get_db
 from app.models.user import User
 from app.models.roles import UserRole
 
+from app import firebase
+from firebase_admin import auth
+from app.core import firebase
+from firebase_admin.exceptions import FirebaseError
+
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-
-def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
+def get_firebase_user(
+    token: str = Depends(oauth2_scheme)
 ):
     try:
-        payload = jwt.decode(
-            token,
-            settings.ACCESS_TOKEN_SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
+        decoded_token = auth.verify_id_token(token)
+
+        print("Firebase token verified")
+        print("UID:", decoded_token.get("uid"))
+        print("Email:", decoded_token.get("email"))
+
+        return decoded_token
+
+    except Exception as e:
+        print("FIREBASE TOKEN ERROR:", repr(e))
+
+        raise HTTPException(
+            status_code=401,
+            detail=f"Firebase token verification failed: {str(e)}"
         )
 
-        if payload.get("type") != "access":
-            raise  HTTPException(status_code=401, detail="Invalid token type")
-
-        user_id = payload.get("user_id")
-
-        if user_id is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    user = db.query(User).filter(User.id == user_id).first()
+def get_current_user(
+    firebase_user= Depends(get_firebase_user),
+    db: Session = Depends(get_db)
+):
+    firebase_uid= firebase_user.get("uid")
+    user= db.query(User).filter(
+        User.firebase_uid== firebase_uid
+    ).first()
 
     if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+        raise HTTPException(
+            status_code=401,
+            detail="User not found")
 
     return user
 
