@@ -14,7 +14,7 @@ from app.core import firebase
 from firebase_admin.exceptions import FirebaseError
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="")
 
 def get_firebase_user(
     token: str = Depends(oauth2_scheme)
@@ -37,18 +37,36 @@ def get_firebase_user(
         )
 
 def get_current_user(
-    firebase_user= Depends(get_firebase_user),
-    db: Session = Depends(get_db)
+    firebase_user=Depends(get_firebase_user),
+    db: Session = Depends(get_db),
 ):
-    firebase_uid= firebase_user.get("uid")
-    user= db.query(User).filter(
-        User.firebase_uid== firebase_uid
-    ).first()
+    firebase_uid = firebase_user.get("uid")
+
+    if not firebase_uid:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid Firebase token",
+        )
+
+    user = (
+        db.query(User)
+        .filter(User.firebase_uid == firebase_uid)
+        .first()
+    )
 
     if not user:
         raise HTTPException(
             status_code=401,
-            detail="User not found")
+            detail="User not found",
+        )
+
+    # Keep Neon verification status synchronized with Firebase.
+    firebase_verified = firebase_user.get("email_verified", False)
+
+    if user.is_verified != firebase_verified:
+        user.is_verified = firebase_verified
+        db.commit()
+        db.refresh(user)
 
     return user
 
