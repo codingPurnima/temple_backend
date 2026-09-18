@@ -8,6 +8,13 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_SECRET_KEY: str
     REFRESH_TOKEN_SECRET_KEY: str
 
+    CLOUDINARY_CLOUD_NAME: str
+    CLOUDINARY_API_KEY: str
+    CLOUDINARY_API_SECRET: str
+
+    SUPER_ADMIN_PASSWORD: str
+    SUPER_ADMIN_EMAIL: str
+    SUPER_ADMIN_NAME: str
     class Config:
         env_file= ".env"
 
