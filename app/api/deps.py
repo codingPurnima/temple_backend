@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 
@@ -8,18 +8,18 @@ from app.db.deps import get_db
 from app.models.user import User
 from app.models.roles import UserRole
 
-from app import firebase
 from firebase_admin import auth
 from app.core import firebase
 from firebase_admin.exceptions import FirebaseError
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="")
+security = HTTPBearer()
 
 def get_firebase_user(
-    token: str = Depends(oauth2_scheme)
+    credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     try:
+        token = credentials.credentials
         decoded_token = auth.verify_id_token(token)
 
         print("Firebase token verified")
