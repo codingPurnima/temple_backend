@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.db.database import engine, Base
-from app.models import user, character, event, lyrics, notification, event_registration, roles 
-from app.api.routes import admin, auth, event, notification, dashboard, character, lyrics
+from app.models import user, character, event, lyrics, notification, event_registration, roles, app_content, dashboard_image
+from app.api.routes import admin, admin_content, auth, content, event, notification, dashboard, character, lyrics
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -27,3 +27,5 @@ app.include_router(dashboard.router, prefix="/dashboard")
 app.include_router(character.router, prefix="/characters")
 app.include_router(lyrics.router, prefix="/lyrics")
 app.include_router(admin.router, prefix="/admin")
+app.include_router(content.router, prefix= "/content")
+app.include_router(admin_content.router, prefix="/admin-content")
